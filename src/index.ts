@@ -5,37 +5,42 @@ import { annualizeHourlyRate } from './utils'
 import { flashEntryPoint } from './flp'
 import { Connection } from '@solana/web3.js'
 import { driftEntryPoint } from './drift'
+import * as mongoose from 'mongoose';
+import { FeeComparison, IFeeComparisonMetaData } from './modal'
 
 type Bindings = {
   SYNC_RPC_ENDPOINT: string
 }
 const app = new Hono<{ Bindings: Bindings }>()
 
-interface ComparisonMetaData {
-  marginfi: {
-      depositTokenIRate: number,
-      borrowTokenIRate: number,
-      netApy: number
-  },
-  jupPerp: {
-      jupCurrentLTV: number,
-      jupCurrentBorrowed: number,
-      jupCurrentUtilization: number,
-      jupAnnualRate: number,
 
-  },
-  flashPerp: {
-      flashCurrentLTV: number,
-      flashCurrentBorrowed: number,
-      flashCurrentUtilization: number,
-      flashAnnualRate: number,
-  },
-  drfit: {
-    driftAnnualizedFunding: number
+const connectDB = async () => {
+
+  try {
+    if (Bun.env.MONGO_URI !== undefined) {
+      const conn = await mongoose.connect(Bun.env.MONGO_URI, {
+        autoIndex: true,
+      })
+
+      console.log(`MongoDB Connected: ${conn.connection.host}`)
+    }
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`)
+    process.exit(1)
   }
+
 }
+const t0_0 = performance.now();
+connectDB().then((e) => {
+    const t1_0 = performance.now();
+    console.log(`Connecting database took ${(t1_0 - t0_0) / 1000}  seconds.`);
+})
 
 app.get('/', async (ctx) => {
+    
+    const isSave = ctx.req.query('save')
+    console.log("isSave :: ", isSave)
+
     if (!Bun.env.SYNC_RPC_ENDPOINT) return ctx.text("RPC_ENDPOINT NOT FOUND")
     const connection = new Connection(Bun.env.SYNC_RPC_ENDPOINT, "confirmed");
 
@@ -84,7 +89,7 @@ app.get('/', async (ctx) => {
     console.log(`
         Annualized Funding rate: ${driftAnnualizedFunding.toFixed(2)}%
     `)
-    const metadata: ComparisonMetaData = {
+    const feeMetadata: IFeeComparisonMetaData = {
         marginfi: {
             depositTokenIRate,
             borrowTokenIRate,
@@ -103,12 +108,18 @@ app.get('/', async (ctx) => {
             flashCurrentUtilization,
             flashAnnualRate,
         },
-        drfit: {
+        drift: {
             driftAnnualizedFunding
         }
     }
 
-    return ctx.json(metadata)
+    if (isSave) {
+        console.log("saving the data into the database")
+        const feeComaprison = await FeeComparison.create(feeMetadata)
+        console.log(feeComaprison.toJSON())
+    }
+
+    return ctx.json(feeMetadata)
 })
 
 export default { 
