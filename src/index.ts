@@ -111,4 +111,7 @@ app.get('/', async (ctx) => {
     return ctx.json(metadata)
 })
 
-export default app
+export default { 
+    port: 6969, 
+    fetch: app.fetch, 
+  } 
