@@ -9,31 +9,45 @@ export const driftEntryPoint = async (connection: Connection) => {
     // SOL-PERP
     const SOL_PERP = new PublicKey("8UJgxaiQx5nTrdDgph5FiahMmzduuLTLf5WmsPegYA6W")
 
+    // 1MBONK-PERP
+    const BONK_PERP = new PublicKey("2QeqpeJUVo2LBWNELRfcBwJgrNoxJQSd7gokcaM5nvaa")
+    
     const borshDecoder = new BorshAccountsCoder(driftIDL as Idl)
 
-    const rawPerpAccount = await connection.getAccountInfo(SOL_PERP)
-    const perpMarketAccount = borshDecoder.decode("PerpMarket", rawPerpAccount?.data!) as PerpMarketAccount;
+    const solPerpRawAccount = await connection.getAccountInfo(SOL_PERP)
+    const bonkPerpRawAccount = await connection.getAccountInfo(BONK_PERP)
 
 
-    const orcaleKey = perpMarketAccount.amm.oracle
-    console.log("data", perpMarketAccount.amm.oracle.toString())
-    console.log("data", JSON.stringify(perpMarketAccount.amm.oracleSource))
-    console.log("marketIndex", perpMarketAccount.marketIndex.toString())
+    if (!solPerpRawAccount) throw Error("solPerpRawAccount not found")
+    if (!bonkPerpRawAccount) throw Error("bonkPerpRawAccount not found")
 
-
-    const rawOrcaleAccount = await connection.getAccountInfo(orcaleKey);
-    if (!rawOrcaleAccount) throw Error("rawOrcaleAccount not found");
+    const solPerpMarketAccount = borshDecoder.decode("PerpMarket", solPerpRawAccount.data) as PerpMarketAccount;
+    const bonkPerpMarketAccount = borshDecoder.decode("PerpMarket", bonkPerpRawAccount.data) as PerpMarketAccount;
 
     const pythClient = new PythClient(connection)
-    const oraclePriceData = pythClient.getOraclePriceDataFromBuffer(rawOrcaleAccount?.data)
 
-    const fundingRate = await calculateLongShortFundingRate(perpMarketAccount, oraclePriceData)
-    const currentEstimatedFundingRate = (fundingRate[0].toNumber() * 24 * 365.25 / 1e6)
+    async function getPerpMarketData(perpMarketAccount: PerpMarketAccount) {
+        const oracleKey = perpMarketAccount.amm.oracle
+        const rawOracleAccount = await connection.getAccountInfo(oracleKey);
+        if (!rawOracleAccount) throw Error("rawOracleAccount not found");
 
-    console.log(`fundingRate :: ${JSON.stringify(fundingRate)}`)
+        const oraclePriceData = pythClient.getOraclePriceDataFromBuffer(rawOracleAccount.data)
+        const fundingRate = await calculateLongShortFundingRate(perpMarketAccount, oraclePriceData)
 
-    console.log("currentEstimatedFundingRate :: ", fundingRate[0].toNumber() * 24 * 365.25 / 1e6)
+        return {
+            longFundingRate: fundingRate[0].toNumber() * 24 * 365.25 / 1e6,
+            shortFundingRate: fundingRate[1].toNumber() * 24 * 365.25 / 1e6
+        }
+    }
 
-    return [currentEstimatedFundingRate]
+    const solPerpData = await getPerpMarketData(solPerpMarketAccount)
+    const bonkPerpData = await getPerpMarketData(bonkPerpMarketAccount)
+
+    const driftPerpMetadata = {
+        SOL: solPerpData.longFundingRate,
+        BONK: bonkPerpData.longFundingRate
+    }
+
+    return driftPerpMetadata
 
 }

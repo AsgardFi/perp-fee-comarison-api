@@ -2,9 +2,18 @@ import { Document, Schema, model } from 'mongoose';
 
 export interface IFeeComparisonMetaData {
     marginfi: {
-        depositTokenIRate: number,
-        borrowTokenIRate: number,
-        netApy: number
+        solToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
+        usdcToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
+        bonkToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
     },
     jupPerp: {
         jupCurrentLTV: number,
@@ -18,8 +27,27 @@ export interface IFeeComparisonMetaData {
         flashCurrentUtilization: number,
         flashAnnualRate: number
     },
-    drift: {
-        driftAnnualizedFunding: number
+    // drift: {
+    //     SOLPerp: {
+    //         driftAnnualizedFunding: number
+    //     },
+    //     BonkPerp: {
+    //         driftAnnualizedFunding: number
+    //     }
+    // },
+    kamino: {
+        solToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
+        usdcToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
+        bonkToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
     }
 }
 
@@ -28,9 +56,18 @@ interface IFeeComparisonDoc extends IFeeComparisonMetaData, Document {}
 const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
     {
         marginfi: {
-            depositTokenIRate: { type: Number, required: true },
-            borrowTokenIRate: { type: Number, required: true },
-            netApy: { type: Number, required: true }
+            solToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            usdcToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            bonkToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
         },
         jupPerp: {
             jupCurrentLTV: { type: Number, required: true },
@@ -44,8 +81,27 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
             flashCurrentUtilization: { type: Number, required: true },
             flashAnnualRate: { type: Number, required: true }
         },
-        drift: {
-            driftAnnualizedFunding: { type: Number, required: true }
+        // drift: {
+        //     SOLPerp: {
+        //         driftAnnualizedFunding: { type: Number, required: true }
+        //     },
+        //     BonkPerp: {
+        //         driftAnnualizedFunding: { type: Number, required: true }
+        //     }
+        // },
+        kamino: {
+            solToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            usdcToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            bonkToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
         }
     },
     {
