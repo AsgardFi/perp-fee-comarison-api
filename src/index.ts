@@ -187,6 +187,55 @@ app.get('/', async (ctx) => {
   return ctx.json(feeMetadata)
 })
 
+// Function to get documents within a date range
+async function getFeeComparisonsByDateRange(from: string, to: string) {
+  try {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    
+    // Set the time to the end of the day for the 'to' date
+    toDate.setHours(23, 59, 59, 999);
+
+    const documents = await FeeComparison.find({
+      createdAt: {
+        $gte: fromDate,
+        $lte: toDate
+      }
+    }, {
+      _id: 0,    // Exclude _id
+      __v: 0     // Exclude __v
+    }).sort({ createdAt: 1 }); // Sort by createdAt in ascending order
+
+    return documents;
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    throw error;
+  }
+}
+
+// Example usage
+app.get('/fee-comparisons', async (ctx) => {
+  const from = ctx.req.query('from'); // Expecting format: "YYYY-MM-DD"
+  const to = ctx.req.query('to');     // Expecting format: "YYYY-MM-DD"
+
+  if (!from || !to) {
+    return ctx.json({ error: 'Missing from or to date' }, 400);
+  }
+
+  // Simple date format validation
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(from) || !dateRegex.test(to)) {
+    return ctx.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, 400);
+  }
+
+  try {
+    const documents = await getFeeComparisonsByDateRange(from, to);
+    return ctx.json(documents);
+  } catch (error) {
+    return ctx.json({ error: 'Failed to fetch documents' }, 500);
+  }
+});
+
 export default {
   port: 6969,
   fetch: app.fetch,
