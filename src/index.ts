@@ -109,13 +109,13 @@ app.get('/', async (ctx) => {
       jupCurrentLTV,
       jupCurrentBorrowed,
       jupCurrentUtilization,
-      jupAnnualRate
+      jupHourlyBorrowRate
     },
     flashPerp: {
       flashCurrentLTV,
       flashCurrentBorrowed,
       flashCurrentUtilization,
-      flashAnnualRate
+      flashHourlyBorrowRate
     },
     // drift: {
     //   SOLPerp: {

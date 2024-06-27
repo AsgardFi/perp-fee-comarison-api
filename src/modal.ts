@@ -19,13 +19,13 @@ export interface IFeeComparisonMetaData {
         jupCurrentLTV: number,
         jupCurrentBorrowed: number,
         jupCurrentUtilization: number,
-        jupAnnualRate: number
+        jupHourlyBorrowRate: number
     },
     flashPerp: {
         flashCurrentLTV: number,
         flashCurrentBorrowed: number,
         flashCurrentUtilization: number,
-        flashAnnualRate: number
+        flashHourlyBorrowRate: number
     },
     // drift: {
     //     SOLPerp: {
@@ -73,13 +73,13 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
             jupCurrentLTV: { type: Number, required: true },
             jupCurrentBorrowed: { type: Number, required: true },
             jupCurrentUtilization: { type: Number, required: true },
-            jupAnnualRate: { type: Number, required: true }
+            jupHourlyBorrowRate: { type: Number, required: true }
         },
         flashPerp: {
             flashCurrentLTV: { type: Number, required: true },
             flashCurrentBorrowed: { type: Number, required: true },
             flashCurrentUtilization: { type: Number, required: true },
-            flashAnnualRate: { type: Number, required: true }
+            flashHourlyBorrowRate: { type: Number, required: true }
         },
         // drift: {
         //     SOLPerp: {
