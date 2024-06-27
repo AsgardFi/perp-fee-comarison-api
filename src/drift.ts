@@ -15,14 +15,14 @@ export const driftEntryPoint = async (connection: Connection) => {
     const borshDecoder = new BorshAccountsCoder(driftIDL as Idl)
 
     const solPerpRawAccount = await connection.getAccountInfo(SOL_PERP)
-    const bonkPerpRawAccount = await connection.getAccountInfo(BONK_PERP)
+    // const bonkPerpRawAccount = await connection.getAccountInfo(BONK_PERP)
 
 
     if (!solPerpRawAccount) throw Error("solPerpRawAccount not found")
-    if (!bonkPerpRawAccount) throw Error("bonkPerpRawAccount not found")
+    // if (!bonkPerpRawAccount) throw Error("bonkPerpRawAccount not found")
 
     const solPerpMarketAccount = borshDecoder.decode("PerpMarket", solPerpRawAccount.data) as PerpMarketAccount;
-    const bonkPerpMarketAccount = borshDecoder.decode("PerpMarket", bonkPerpRawAccount.data) as PerpMarketAccount;
+    // const bonkPerpMarketAccount = borshDecoder.decode("PerpMarket", bonkPerpRawAccount.data) as PerpMarketAccount;
 
     const pythClient = new PythClient(connection)
 
@@ -35,17 +35,16 @@ export const driftEntryPoint = async (connection: Connection) => {
         const fundingRate = await calculateLongShortFundingRate(perpMarketAccount, oraclePriceData)
 
         return {
-            longFundingRate: fundingRate[0].toNumber() * 24 * 365.25 / 1e6,
-            shortFundingRate: fundingRate[1].toNumber() * 24 * 365.25 / 1e6
+            longFundingRate: fundingRate[0].toNumber() / 1e6,
         }
     }
 
     const solPerpData = await getPerpMarketData(solPerpMarketAccount)
-    const bonkPerpData = await getPerpMarketData(bonkPerpMarketAccount)
+    // const bonkPerpData = await getPerpMarketData(bonkPerpMarketAccount)
 
     const driftPerpMetadata = {
-        SOL: solPerpData.longFundingRate,
-        BONK: bonkPerpData.longFundingRate
+        SOLHourlyFundingRate: solPerpData.longFundingRate,
+        // BONK: bonkPerpData.longFundingRate
     }
 
     return driftPerpMetadata

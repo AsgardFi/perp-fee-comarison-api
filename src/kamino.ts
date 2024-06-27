@@ -2,70 +2,60 @@ import { DEFAULT_RECENT_SLOT_DURATION_MS, KaminoReserve, Reserve, getTokenOracle
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
 
 export const kaminoEntrypoint = async (connection: Connection) => {
-    const bankPubkeys: PublicKey[] = []
-
-    const solBankPubkey = new PublicKey("d4A2prbA2whesmvHaL88BH6Ewn5N4bTSU2Ze8P6Bc4Q")
-    const usdcBankPubkey = new PublicKey("D6q6wuQSrifJKZYpR1M8R4YawnLDtDsMmWM1NbBmgJ59")
-    const bonkBankPubkey = new PublicKey("CoFdsnQeCUyJefhKK6GQaAPT9PEx8Xcs2jejtp9jgn38")
-    bankPubkeys.push(solBankPubkey, usdcBankPubkey, bonkBankPubkey)
-
-    const banks: AccountInfo<Buffer>[] = []
-    const solBankRaw = await connection.getAccountInfo(solBankPubkey)
-    if (!solBankRaw) throw Error("solBankRaw not found")
-
-    const usdcBankRaw = await connection.getAccountInfo(usdcBankPubkey)
-    if (!usdcBankRaw) throw Error("usdcBankRaw not found")
-
-    const bonkBankRaw = await connection.getAccountInfo(bonkBankPubkey)
-    if (!bonkBankRaw) throw Error("bonkBankRaw not found")
-    banks.push(solBankRaw, usdcBankRaw, bonkBankRaw)
-
-    const solBankState = Reserve.decode(solBankRaw.data)
-    const usdcBankState = Reserve.decode(usdcBankRaw.data)
-    const bonkBankState = Reserve.decode(bonkBankRaw.data)
-
-    const reservesAndOracles = await getTokenOracleData(connection, [solBankState, usdcBankState, bonkBankState]);
-    if (!reservesAndOracles) throw Error("reservesAndOracles not found")
-
-    const kaminoMarketReserve: KaminoReserve[] = []
-    reservesAndOracles.forEach(([reserve, oracle], index) => {
+    const bankPubkeys = {
+        SOL: new PublicKey("d4A2prbA2whesmvHaL88BH6Ewn5N4bTSU2Ze8P6Bc4Q"),
+        USDC: new PublicKey("D6q6wuQSrifJKZYpR1M8R4YawnLDtDsMmWM1NbBmgJ59"),
+        BONK: new PublicKey("CoFdsnQeCUyJefhKK6GQaAPT9PEx8Xcs2jejtp9jgn38"),
+        USDT: new PublicKey("H3t6qZ1JkguCNTi9uzVKqQ7dvt2cum4XiXWom6Gn5e5S"),
+        ETH: new PublicKey("febGYTnFX4GbSGoFHFeJXUHgNaK53fB23uDins9Jp1E")
+    };
+    
+    const bankPubkeyArray = Object.values(bankPubkeys);
+    
+    const bankInfos = await Promise.all(
+        bankPubkeyArray.map(async (pubkey) => {
+            const bankRaw = await connection.getAccountInfo(pubkey);
+            if (!bankRaw) throw Error(`Bank info not found for ${pubkey.toString()}`);
+            return { pubkey, bankRaw };
+        })
+    );
+    
+    const bankStates = bankInfos.map(({ bankRaw }) => Reserve.decode(bankRaw.data));
+    
+    const reservesAndOracles = await getTokenOracleData(connection, bankStates);
+    if (!reservesAndOracles) throw Error("Reserves and oracles data not found");
+    
+    const kaminoMarketReserves = reservesAndOracles.map(([reserve, oracle], index) => {
         if (!oracle) {
             throw Error(`Could not find oracle for ${reserve.config.tokenInfo.name} reserve`);
         }
-        const kaminoReserve = KaminoReserve.initialize(
-            banks[index],
-            bankPubkeys[index],
+        return KaminoReserve.initialize(
+            bankInfos[index].bankRaw,
+            bankInfos[index].pubkey,
             reserve,
             oracle,
             connection,
             DEFAULT_RECENT_SLOT_DURATION_MS
         );
-        kaminoMarketReserve.push(kaminoReserve)
     });
-
-    const kaminoBankMetadata = {
-        SOL: {
-            deposit: kaminoMarketReserve[0].totalSupplyAPY().totalAPY,
-            borrow: kaminoMarketReserve[0].totalBorrowAPY().totalAPY,
-        },
-        USDC: {
-            deposit: kaminoMarketReserve[1].totalSupplyAPY().totalAPY,
-            borrow: kaminoMarketReserve[1].totalBorrowAPY().totalAPY
-        },
-        BONK: {
-            deposit: kaminoMarketReserve[2].totalSupplyAPY().totalAPY,
-            borrow: kaminoMarketReserve[2].totalBorrowAPY().totalAPY
-        }
-    }
-
-    // Log the results
-    // for (const [token, data] of Object.entries(kaminoBankMetadata)) {
-    //     console.log(`Token symbol :: ${token}`)
-    //     console.log(`Address :: ${bankPubkeys[["SOL", "USDC", "BONK"].indexOf(token)].toString()}`)
-    //     console.log(`Supply APY ${data.deposit.toFixed(2)}%`)
-    //     console.log(`Borrow APY ${data.borrow.toFixed(2)}%`)
-    //     console.log("---")
-    // }
+    
+    const kaminoBankMetadata = Object.fromEntries(
+        kaminoMarketReserves.map(reserve => [
+            reserve.symbol,
+            {
+                deposit: reserve.totalSupplyAPY().totalAPY,
+                borrow: reserve.totalBorrowAPY().totalAPY,
+            }
+        ])
+    );
+    
+    kaminoMarketReserves.forEach((reserve) => {
+        console.log(`Token symbol :: ${reserve.symbol}`);
+        console.log(`Address :: ${reserve.address.toString()}`);
+        console.log(`Supply APY ${reserve.totalSupplyAPY().totalAPY * 100}%`);
+        console.log(`Borrow APY ${reserve.totalBorrowAPY().totalAPY * 100}%`);
+        console.log('---');
+    });
 
     return kaminoBankMetadata;
 }

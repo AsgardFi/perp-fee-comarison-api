@@ -14,27 +14,54 @@ export interface IFeeComparisonMetaData {
             depositIRate: number,
             borrowIRate: number,
         },
+        usdtToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
+        ethToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
     },
     jupPerp: {
-        jupCurrentLTV: number,
-        jupCurrentBorrowed: number,
-        jupCurrentUtilization: number,
-        jupHourlyBorrowRate: number
+        solToken: {
+            CurrentLTV: number,
+            CurrentBorrowed: number,
+            CurrentUtilization: number,
+            HourlyBorrowRate: number
+        },
+        ethToken: {
+            CurrentLTV: number,
+            CurrentBorrowed: number,
+            CurrentUtilization: number,
+            HourlyBorrowRate: number
+        },
     },
     flashPerp: {
-        flashCurrentLTV: number,
-        flashCurrentBorrowed: number,
-        flashCurrentUtilization: number,
-        flashHourlyBorrowRate: number
+        solToken: {
+            CurrentLTV: number,
+            CurrentBorrowed: number,
+            CurrentUtilization: number,
+            HourlyBorrowRate: number
+        },
+        ethToken: {
+            CurrentLTV: number,
+            CurrentBorrowed: number,
+            CurrentUtilization: number,
+            HourlyBorrowRate: number
+        },
+        bonkToken: {
+            CurrentLTV: number,
+            CurrentBorrowed: number,
+            CurrentUtilization: number,
+            HourlyBorrowRate: number
+        },
     },
-    // drift: {
-    //     SOLPerp: {
-    //         driftAnnualizedFunding: number
-    //     },
-    //     BonkPerp: {
-    //         driftAnnualizedFunding: number
-    //     }
-    // },
+    drift: {
+        SOLPerp: {
+            driftHourlyFunding: number
+        }
+    },
     kamino: {
         solToken: {
             depositIRate: number,
@@ -48,10 +75,18 @@ export interface IFeeComparisonMetaData {
             depositIRate: number,
             borrowIRate: number,
         },
+        usdtToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
+        ethToken: {
+            depositIRate: number,
+            borrowIRate: number,
+        },
     }
 }
 
-interface IFeeComparisonDoc extends IFeeComparisonMetaData, Document {}
+interface IFeeComparisonDoc extends IFeeComparisonMetaData, Document { }
 
 const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
     {
@@ -68,27 +103,54 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
                 depositIRate: { type: Number, required: true },
                 borrowIRate: { type: Number, required: true },
             },
+            usdtToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            ethToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
         },
         jupPerp: {
-            jupCurrentLTV: { type: Number, required: true },
-            jupCurrentBorrowed: { type: Number, required: true },
-            jupCurrentUtilization: { type: Number, required: true },
-            jupHourlyBorrowRate: { type: Number, required: true }
+            solToken: {
+                CurrentLTV: { type: Number, required: true },
+                CurrentBorrowed: { type: Number, required: true },
+                CurrentUtilization: { type: Number, required: true },
+                HourlyBorrowRate: { type: Number, required: true }
+            },
+            ethToken: {
+                CurrentLTV: { type: Number, required: true },
+                CurrentBorrowed: { type: Number, required: true },
+                CurrentUtilization: { type: Number, required: true },
+                HourlyBorrowRate: { type: Number, required: true }
+            },
         },
         flashPerp: {
-            flashCurrentLTV: { type: Number, required: true },
-            flashCurrentBorrowed: { type: Number, required: true },
-            flashCurrentUtilization: { type: Number, required: true },
-            flashHourlyBorrowRate: { type: Number, required: true }
+            solToken: {
+                CurrentLTV: { type: Number, required: true },
+                CurrentBorrowed: { type: Number, required: true },
+                CurrentUtilization: { type: Number, required: true },
+                HourlyBorrowRate: { type: Number, required: true }
+            },
+            ethToken: {
+                CurrentLTV: { type: Number, required: true },
+                CurrentBorrowed: { type: Number, required: true },
+                CurrentUtilization: { type: Number, required: true },
+                HourlyBorrowRate: { type: Number, required: true }
+            },
+            bonkToken: {
+                CurrentLTV: { type: Number, required: true },
+                CurrentBorrowed: { type: Number, required: true },
+                CurrentUtilization: { type: Number, required: true },
+                HourlyBorrowRate: { type: Number, required: true }
+            },
         },
-        // drift: {
-        //     SOLPerp: {
-        //         driftAnnualizedFunding: { type: Number, required: true }
-        //     },
-        //     BonkPerp: {
-        //         driftAnnualizedFunding: { type: Number, required: true }
-        //     }
-        // },
+        drift: {
+            SOLPerp: {
+                driftHourlyFunding: { type: Number, required: true }
+            }
+        },
         kamino: {
             solToken: {
                 depositIRate: { type: Number, required: true },
@@ -99,6 +161,14 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
                 borrowIRate: { type: Number, required: true },
             },
             bonkToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            usdtToken: {
+                depositIRate: { type: Number, required: true },
+                borrowIRate: { type: Number, required: true },
+            },
+            ethToken: {
                 depositIRate: { type: Number, required: true },
                 borrowIRate: { type: Number, required: true },
             },

@@ -15,27 +15,24 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>()
 
 const connectDB = async () => {
-
   try {
     if (Bun.env.MONGO_URI !== undefined) {
       const conn = await mongoose.connect(Bun.env.MONGO_URI, {
         autoIndex: true,
       })
-
       console.log(`MongoDB Connected: ${conn.connection.host}`)
     }
   } catch (err: any) {
     console.error(`Error: ${err.message}`)
     process.exit(1)
   }
-
 }
+
 const t0_0 = performance.now();
-connectDB().then((e) => {
+connectDB().then(() => {
   const t1_0 = performance.now();
   console.log(`Connecting database took ${(t1_0 - t0_0) / 1000}  seconds.`);
 })
-
 
 app.get('/', async (ctx) => {
   const isSave = ctx.req.query('save')
@@ -49,45 +46,50 @@ app.get('/', async (ctx) => {
   console.log("=============== Marginfi =================")
   for (const [token, data] of Object.entries(marginIRateMetadata)) {
     console.log(`${token}:`)
-    console.log(`  Deposit Rate: ${(data.deposit*100).toFixed(2)}%`)
-    console.log(`  Borrow Rate: ${(data.borrow*100).toFixed(2)}%`)
+    console.log(`  Deposit Rate: ${(data.deposit * 100).toFixed(2)}%`)
+    console.log(`  Borrow Rate: ${(data.borrow * 100).toFixed(2)}%`)
   }
 
   // JUP
-  const [jupCurrentLTV, jupCurrentBorrowed, jupCurrentUtilization, jupHourlyBorrowRate] = await jupEntryPoint(connection)
-  const jupAnnualRate = annualizeHourlyRate(jupHourlyBorrowRate);
+  const jupIRateMetadata = await jupEntryPoint(connection)
   console.log("=============== JUP PERP =================")
-  console.log(`Current LTV: ${jupCurrentLTV} SOL`)
-  console.log(`Current Borrowed: ${jupCurrentBorrowed} SOL`)
-  console.log(`Current Utilization: ${jupCurrentUtilization}%`)
-  console.log(`Borrow Rate (hourly): ${jupHourlyBorrowRate.toFixed(4)}% / hr`)
-  console.log(`Borrow Rate (annual): ${jupAnnualRate.toFixed(2)}%`)
+  for (const [token, data] of Object.entries(jupIRateMetadata)) {
+    console.log(`${token.toUpperCase()}:`)
+    console.log(`  Current LTV: ${data.ltv} ${token.toUpperCase()}`)
+    console.log(`  Current Borrowed: ${data.borrowed} ${token.toUpperCase()}`)
+    console.log(`  Current Utilization: ${data.utilization}%`)
+    console.log(`  Borrow Rate (hourly): ${data.borrowRate.toFixed(4)}% / hr`)
+    console.log(`  Borrow Rate (annual): ${annualizeHourlyRate(data.borrowRate).toFixed(2)}%`)
+  }
 
   // Flash
-  const [flashCurrentLTV, flashCurrentBorrowed, flashCurrentUtilization, flashHourlyBorrowRate] = await flashEntryPoint(connection)
-  const flashAnnualRate = annualizeHourlyRate(flashHourlyBorrowRate);
+  const flashIRateMetadata = await flashEntryPoint(connection)
   console.log("=============== FLASH PERP =================")
-  console.log(`Current LTV: ${flashCurrentLTV} SOL`)
-  console.log(`Current Borrowed: ${flashCurrentBorrowed} SOL`)
-  console.log(`Current Utilization: ${flashCurrentUtilization}%`)
-  console.log(`Borrow Rate (hourly): ${flashHourlyBorrowRate.toFixed(4)}% / hr`)
-  console.log(`Borrow Rate (annual): ${flashAnnualRate.toFixed(2)}%`)
-
-  // Drift
-  // console.log("=============== DRIFT PERP =================")
-  // const driftIRateMetadata = await driftEntryPoint(connection)
-  // for (const [token, data] of Object.entries(driftIRateMetadata)) {
-  //   console.log(`${token}:`)
-  //   console.log(`  Long Funding Rate (annual): ${data.toFixed(2)}%`)
-  // }
+  for (const [token, dataPromise] of Object.entries(flashIRateMetadata)) {
+    const data = await dataPromise
+    console.log(`${token.toUpperCase()}:`)
+    console.log(`  Current LTV: ${data.ltv} ${token.toUpperCase()}`)
+    console.log(`  Current Borrowed: ${data.borrowed} ${token.toUpperCase()}`)
+    console.log(`  Current Utilization: ${data.utilization}%`)
+    console.log(`  Borrow Rate (hourly): ${data.borrowRate.toFixed(4)}% / hr`)
+    console.log(`  Borrow Rate (annual): ${annualizeHourlyRate(data.borrowRate).toFixed(2)}%`)
+  }
 
   // Kamino
   console.log("=============== Kamino =================")
   const kaminoIRateMetadata = await kaminoEntrypoint(connection)
   for (const [token, data] of Object.entries(kaminoIRateMetadata)) {
     console.log(`${token}:`)
-    console.log(`  Deposit Rate: ${(data.deposit*100).toFixed(2)}%`)
-    console.log(`  Borrow Rate: ${(data.borrow*100).toFixed(2)}%`)
+    console.log(`  Deposit Rate: ${(data.deposit * 100).toFixed(2)}%`)
+    console.log(`  Borrow Rate: ${(data.borrow * 100).toFixed(2)}%`)
+  }
+
+  // Drift
+  console.log("=============== DRIFT PERP =================")
+  const driftIRateMetadata = await driftEntryPoint(connection)
+  for (const [token, data] of Object.entries(driftIRateMetadata)) {
+    console.log(`${token}:`)
+    console.log(`  Long Funding Rate (annual): ${data.toFixed(2)}%`)
   }
 
   const feeMetadata: IFeeComparisonMetaData = {
@@ -104,27 +106,54 @@ app.get('/', async (ctx) => {
         depositIRate: marginIRateMetadata.BONK.deposit,
         borrowIRate: marginIRateMetadata.BONK.borrow,
       },
+      usdtToken: {
+        depositIRate: marginIRateMetadata.USDT.deposit,
+        borrowIRate: marginIRateMetadata.USDT.borrow,
+      },
+      ethToken: {
+        depositIRate: marginIRateMetadata.ETH.deposit,
+        borrowIRate: marginIRateMetadata.ETH.borrow,
+      },
     },
     jupPerp: {
-      jupCurrentLTV,
-      jupCurrentBorrowed,
-      jupCurrentUtilization,
-      jupHourlyBorrowRate
+      solToken: {
+        CurrentLTV: jupIRateMetadata.sol.ltv,
+        CurrentBorrowed: jupIRateMetadata.sol.borrowed,
+        CurrentUtilization: jupIRateMetadata.sol.utilization,
+        HourlyBorrowRate: jupIRateMetadata.sol.borrowRate
+      },
+      ethToken: {
+        CurrentLTV: jupIRateMetadata.eth.ltv,
+        CurrentBorrowed: jupIRateMetadata.eth.borrowed,
+        CurrentUtilization: jupIRateMetadata.eth.utilization,
+        HourlyBorrowRate: jupIRateMetadata.eth.borrowRate
+      },
     },
     flashPerp: {
-      flashCurrentLTV,
-      flashCurrentBorrowed,
-      flashCurrentUtilization,
-      flashHourlyBorrowRate
+      solToken: {
+        CurrentLTV: (await flashIRateMetadata.sol).ltv,
+        CurrentBorrowed: (await flashIRateMetadata.sol).borrowed,
+        CurrentUtilization: (await flashIRateMetadata.sol).utilization,
+        HourlyBorrowRate: (await flashIRateMetadata.sol).borrowRate
+      },
+      ethToken: {
+        CurrentLTV: (await flashIRateMetadata.eth).ltv,
+        CurrentBorrowed: (await flashIRateMetadata.eth).borrowed,
+        CurrentUtilization: (await flashIRateMetadata.eth).utilization,
+        HourlyBorrowRate: (await flashIRateMetadata.eth).borrowRate
+      },
+      bonkToken: {
+        CurrentLTV: (await flashIRateMetadata.bonk).ltv,
+        CurrentBorrowed: (await flashIRateMetadata.bonk).borrowed,
+        CurrentUtilization: (await flashIRateMetadata.bonk).utilization,
+        HourlyBorrowRate: (await flashIRateMetadata.bonk).borrowRate
+      },
     },
-    // drift: {
-    //   SOLPerp: {
-    //     driftAnnualizedFunding: driftIRateMetadata.SOL
-    //   },
-    //   BonkPerp: {
-    //     driftAnnualizedFunding: driftIRateMetadata.BONK
-    //   }
-    // },
+    drift: {
+      SOLPerp: {
+        driftHourlyFunding: driftIRateMetadata.SOLHourlyFundingRate
+      }
+    },
     kamino: {
       solToken: {
         depositIRate: kaminoIRateMetadata.SOL.deposit,
@@ -137,6 +166,14 @@ app.get('/', async (ctx) => {
       bonkToken: {
         depositIRate: kaminoIRateMetadata.BONK.deposit,
         borrowIRate: kaminoIRateMetadata.BONK.borrow,
+      },
+      usdtToken: {
+        depositIRate: kaminoIRateMetadata.USDT.deposit,
+        borrowIRate: kaminoIRateMetadata.USDT.borrow,
+      },
+      ethToken: {
+        depositIRate: kaminoIRateMetadata.ETH.deposit,
+        borrowIRate: kaminoIRateMetadata.ETH.borrow,
       },
     }
   }

@@ -11,28 +11,34 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import * as jupIDL from './jup_perp_idl.json';
 import { nativeToUi } from "@mrgnlabs/mrgn-common";
 
+const borshDecoder = new BorshAccountsCoder(jupIDL as any);
+
+const processAsset = async (connection: Connection, pubkey: string, decimals: number, assetName: string) => {
+    const accountInfo = await connection.getAccountInfo(new PublicKey(pubkey));
+    if (!accountInfo) throw new Error(`Account info not found for ${pubkey}`);
+
+    const { assets } = borshDecoder.decode("Custody", accountInfo.data);
+    const ltv = nativeToUi(assets.owned, decimals);
+    const borrowed = nativeToUi(assets.locked, decimals);
+
+    const utilization = (borrowed / ltv);
+    const borrowRate = (borrowed / ltv) * 0.01;
+
+    console.log(`
+    ${assetName}:
+    currentLTV :: ${ltv} ${assetName}
+    currentBorrowed :: ${borrowed} ${assetName}
+    currentUtilization :: ${utilization.toFixed(2)}%
+    borrowRate per hour :: ${borrowRate.toFixed(4)}% / hr
+    `);
+
+    return { ltv, borrowed, utilization, borrowRate };
+};
 
 export const jupEntryPoint = async (connection: Connection) => {
+    const sol = await processAsset(connection, '7xS2gz2bTp3fwCC7knJvUWTEU9Tycczu6VhJYKgi1wdz', 9, 'SOL')
+    const eth = await processAsset(connection, 'AQCGyheWPLeo6Qp9WpYS9m3Qj479t7R636N9ey1rEjEn', 8, 'ETH')
 
-    const solCustodyAccount = new PublicKey('7xS2gz2bTp3fwCC7knJvUWTEU9Tycczu6VhJYKgi1wdz');
-    const solCustodyAccountInfo = await connection.getAccountInfo(solCustodyAccount)
-
-    const borshDecoder = new BorshAccountsCoder(jupIDL as any)
-
-    const data = borshDecoder.decode("Custody", solCustodyAccountInfo?.data!);
-    
-    const currentLTV = nativeToUi(data["assets"]["owned"], 9);
-    const currentBorrowed = nativeToUi(data["assets"]["locked"], 9);
-    const currentUtilization = ((currentBorrowed/currentLTV) * 100)
-    // The borrow rate is calculated as (assets borrowed) / (total assets in pool) * 0.01% per hour * position size.
-    const borrowRate = ((currentBorrowed / currentLTV) * 0.01)
-
-    // console.log(`
-    //     currentLTV :: ${currentLTV} SOL
-    //     currentBorrowed :: ${currentBorrowed} SOL
-    //     currentUtilization :: ${currentUtilization} %
-    //     borrowRate per hour :: ${borrowRate}% / hr
-    // `)
-
-    return [currentLTV, currentBorrowed, currentUtilization, borrowRate]
-}
+    console.log('Processing complete.');
+    return { sol, eth };
+};
