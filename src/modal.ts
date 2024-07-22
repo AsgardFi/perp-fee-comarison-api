@@ -58,7 +58,7 @@ export interface IFeeComparisonMetaData {
         },
     },
     drift: {
-        SOLPerp: {
+        SOLPerp?: {
             driftHourlyFunding: number
         },
         BONKPerp?: {
@@ -151,7 +151,7 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
         },
         drift: {
             SOLPerp: {
-                driftHourlyFunding: { type: Number, required: true }
+                driftHourlyFunding: { type: Number, required: false }
             },
             BONKPerp: {
                 driftHourlyFunding: { type: Number, required: false }

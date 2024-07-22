@@ -85,12 +85,12 @@ app.get('/', async (ctx) => {
   }
 
   // Drift
-  console.log("=============== DRIFT PERP =================")
-  const driftIRateMetadata = await driftEntryPoint(connection)
-  for (const [token, data] of Object.entries(driftIRateMetadata)) {
-    console.log(`${token}:`)
-    console.log(`  Long Funding Rate (annual): ${data.toFixed(2)}%`)
-  }
+  // console.log("=============== DRIFT PERP =================")
+  // const driftIRateMetadata = await driftEntryPoint(connection)
+  // for (const [token, data] of Object.entries(driftIRateMetadata)) {
+  //   console.log(`${token}:`)
+  //   console.log(`  Long Funding Rate (annual): ${data.toFixed(2)}%`)
+  // }
 
   const feeMetadata: IFeeComparisonMetaData = {
     marginfi: {
@@ -150,9 +150,10 @@ app.get('/', async (ctx) => {
       },
     },
     drift: {
-      SOLPerp: {
-        driftHourlyFunding: driftIRateMetadata.SOLHourlyFundingRate
-      }
+      // SOLPerp: {
+      //   // driftHourlyFunding: driftIRateMetadata.SOLHourlyFundingRate
+      //   driftHourlyFunding: 0
+      // },
     },
     kamino: {
       solToken: {

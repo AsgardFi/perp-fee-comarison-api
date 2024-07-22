@@ -9,8 +9,8 @@ export const driftEntryPoint = async (connection: Connection) => {
     // SOL-PERP
     const SOL_PERP = new PublicKey("8UJgxaiQx5nTrdDgph5FiahMmzduuLTLf5WmsPegYA6W")
 
-    // 1MBONK-PERP
-    const BONK_PERP = new PublicKey("2QeqpeJUVo2LBWNELRfcBwJgrNoxJQSd7gokcaM5nvaa")
+    // // 1MBONK-PERP
+    // const BONK_PERP = new PublicKey("2QeqpeJUVo2LBWNELRfcBwJgrNoxJQSd7gokcaM5nvaa")
     
     const borshDecoder = new BorshAccountsCoder(driftIDL as Idl)
 
