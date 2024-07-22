@@ -39,12 +39,14 @@ export const kaminoEntrypoint = async (connection: Connection) => {
         );
     });
     
+    const currentSlot = await connection.getSlot();
+
     const kaminoBankMetadata = Object.fromEntries(
         kaminoMarketReserves.map(reserve => [
             reserve.symbol,
             {
-                deposit: reserve.totalSupplyAPY().totalAPY,
-                borrow: reserve.totalBorrowAPY().totalAPY,
+                deposit: reserve.totalSupplyAPY(currentSlot),
+                borrow: reserve.totalBorrowAPY(currentSlot),
             }
         ])
     );
@@ -52,8 +54,8 @@ export const kaminoEntrypoint = async (connection: Connection) => {
     kaminoMarketReserves.forEach((reserve) => {
         console.log(`Token symbol :: ${reserve.symbol}`);
         console.log(`Address :: ${reserve.address.toString()}`);
-        console.log(`Supply APY ${reserve.totalSupplyAPY().totalAPY * 100}%`);
-        console.log(`Borrow APY ${reserve.totalBorrowAPY().totalAPY * 100}%`);
+        console.log(`Supply APY ${reserve.totalSupplyAPY(currentSlot) * 100}%`);
+        console.log(`Borrow APY ${reserve.totalBorrowAPY(currentSlot) * 100}%`);
         console.log('---');
     });
 

@@ -60,6 +60,9 @@ export interface IFeeComparisonMetaData {
     drift: {
         SOLPerp: {
             driftHourlyFunding: number
+        },
+        BONKPerp?: {
+            driftHourlyFunding: Number
         }
     },
     kamino: {
@@ -149,6 +152,9 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
         drift: {
             SOLPerp: {
                 driftHourlyFunding: { type: Number, required: true }
+            },
+            BONKPerp: {
+                driftHourlyFunding: { type: Number, required: false }
             }
         },
         kamino: {
