@@ -4,9 +4,10 @@
     "dev": "bun run --hot src/index.ts"
   },
   "dependencies": {
-    "@asgardfi/marginfi-client-v2-patch": "^0.0.14",
+    "@coral-xyz/anchor": "^0.30.1",
     "@drift-labs/sdk": "^2.85.0-beta.4",
     "@kamino-finance/klend-sdk": "^2.13.1",
+    "@mrgnlabs/marginfi-client-v2": "^3.1.0",
     "@solana/web3.js": "^1.93.1",
     "@types/csv-parse": "^1.2.2",
     "big.js": "^6.2.1",
