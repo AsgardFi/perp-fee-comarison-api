@@ -1408,7 +1408,7 @@
   ],
   "accounts": [
     {
-      "name": "custody",
+      "name": "Custody",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2802,5 +2802,8 @@
       "name": "InvalidDovesOraclePrice",
       "msg": "Invalid Doves Oracle Price"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "PERPHjGBqRHArX4DySjwM6UJHiR3sWAatqfdBS2qQJu"
+  }
 }

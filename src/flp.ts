@@ -3,18 +3,19 @@
 // HfF7GCcEc76xubFCHLLXRdYcgRzwjEPdfKWqzRS8Ncog :: FLP.1 Custody account
 
 
-import { BorshAccountsCoder } from "@coral-xyz/anchor";
+import { BorshAccountsCoder, BorshCoder } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
-import * as flashIDL from './flp_perp_idl.json';
+import * as flashIDL from './flp_perp_idl_v2.json';
+import { Perpetuals } from './flp_perp_idl_v2_type';
 import { nativeToUi } from "@mrgnlabs/mrgn-common";
 
-const borshDecoder = new BorshAccountsCoder(flashIDL as any);
+const borshDecoder = new BorshCoder(flashIDL as Perpetuals);
 
 const processAsset = async (connection: Connection, pubkey: string, decimals: number, assetName: string) => {
     const accountInfo = await connection.getAccountInfo(new PublicKey(pubkey));
     if (!accountInfo) throw new Error(`Account info not found for ${pubkey}`);
 
-    const data = borshDecoder.decode("Custody", accountInfo.data);
+    const data = borshDecoder.accounts.decode("Custody", accountInfo.data);
     const ltv = nativeToUi(data.assets.owned, decimals);
     const borrowed = nativeToUi(data.assets.locked, decimals);
     const utilization = (borrowed / (ltv * 0.9)) * 100;

@@ -6,20 +6,22 @@
 // 5BUwFW4nRbftYTDMbgxykoFWqWHPzahFSNAaaaJtVKsq :: JLP POOL
 
 // SOL Custody account :: 7xS2gz2bTp3fwCC7knJvUWTEU9Tycczu6VhJYKgi1wdz
-import { BorshAccountsCoder, BorshCoder } from "@coral-xyz/anchor";
+import { AnchorProvider, BorshAccountsCoder, BorshCoder, Program } from "@coral-xyz/anchor";
 import { Connection, PublicKey } from "@solana/web3.js";
-import * as jupIDL from './jup_perp_idl.json.json';
+import * as jupIDL from './jup_perp_idl_2.json';
+import { Perpetuals } from './jup_perp_idl_2_type'
 import { nativeToUi } from "@mrgnlabs/mrgn-common";
 
-const borshDecoder = new BorshAccountsCoder(jupIDL as any);
-// const boarsborshDecoder = new BorshCoder(jupIDL as any)
+const boarsborshDecoder = new BorshCoder(jupIDL as Perpetuals)
+export const connection = new Connection(Bun.env.SYNC_RPC_ENDPOINT!, "processed");
+export const provider = new AnchorProvider(connection, {} as any, { commitment: 'processed' });
 
 const processAsset = async (connection: Connection, pubkey: string, decimals: number, assetName: string) => {
     const accountInfo = await connection.getAccountInfo(new PublicKey(pubkey));
     if (!accountInfo) throw new Error(`Account info not found for ${pubkey}`);
     
-    // const { assets } = boarsborshDecoder.accounts.decode("custody", accountInfo.data);
-    const { assets } = borshDecoder.decode("custody", accountInfo.data);
+    const { assets } = boarsborshDecoder.accounts.decode("Custody", accountInfo.data);
+    
     const ltv = nativeToUi(assets.owned, decimals);
     const borrowed = nativeToUi(assets.locked, decimals);
 
@@ -38,9 +40,9 @@ const processAsset = async (connection: Connection, pubkey: string, decimals: nu
 };
 
 export const jupEntryPoint = async (connection: Connection) => {
-    // const sol = await processAsset(connection, '7xS2gz2bTp3fwCC7knJvUWTEU9Tycczu6VhJYKgi1wdz', 9, 'SOL')
-    // const eth = await processAsset(connection, 'AQCGyheWPLeo6Qp9WpYS9m3Qj479t7R636N9ey1rEjEn', 8, 'ETH')
+    const sol = await processAsset(connection, '7xS2gz2bTp3fwCC7knJvUWTEU9Tycczu6VhJYKgi1wdz', 9, 'SOL')
+    const eth = await processAsset(connection, 'AQCGyheWPLeo6Qp9WpYS9m3Qj479t7R636N9ey1rEjEn', 8, 'ETH')
 
     console.log('Processing complete.');
-    // return { sol, eth };
+    return { sol, eth };
 };
