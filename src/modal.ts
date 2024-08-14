@@ -63,6 +63,9 @@ export interface IFeeComparisonMetaData {
         },
         BONKPerp?: {
             driftHourlyFunding: Number
+        },
+        ETHPerp?: {
+            driftHourlyFunding: Number
         }
     },
     kamino: {
@@ -154,6 +157,9 @@ const feeComparisonSchema = new Schema<IFeeComparisonDoc>(
                 driftHourlyFunding: { type: Number, required: false }
             },
             BONKPerp: {
+                driftHourlyFunding: { type: Number, required: false }
+            },
+            ETHPerp: {
                 driftHourlyFunding: { type: Number, required: false }
             }
         },
