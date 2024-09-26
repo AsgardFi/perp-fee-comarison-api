@@ -5,7 +5,7 @@ import { annualizeHourlyRate } from './utils'
 import { flashEntryPoint } from './flp'
 import { Connection } from '@solana/web3.js'
 import { driftEntryPoint } from './drift'
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 import { FeeComparison, IFeeComparisonMetaData } from './modal'
 import { kaminoEntrypoint } from './kamino'
 
@@ -15,26 +15,73 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>()
 
 const connectDB = async () => {
-  try {
-    if (Bun.env.MONGO_URI !== undefined) {
-      const conn = await mongoose.connect(Bun.env.MONGO_URI, {
-        autoIndex: true,
-      })
-      console.log(`MongoDB Connected: ${conn.connection.host}`)
-    }
-  } catch (err: any) {
-    console.error(`Error: ${err.message}`)
-    process.exit(1)
+  if (Bun.env.MONGO_URI === undefined) {
+    throw new Error('MONGO_URI is not defined in environment variables');
   }
-}
+  
+  try {
+    await mongoose.connect(Bun.env.MONGO_URI, {
+      autoIndex: true,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      socketTimeoutMS: 45000,
+    });
+    
+    console.log(`MongoDB Connected: ${mongoose.connection.host}`);
+    
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.warn('MongoDB disconnected. Attempting to reconnect...');
+    });
+    
+    mongoose.connection.on('reconnected', () => {
+      console.log('MongoDB reconnected');
+    });
+    
+  } catch (err: any) {
+    console.error(`Error connecting to MongoDB: ${err.message}`);
+    throw err;
+  }
+};
 
-const t0_0 = performance.now();
-connectDB().then(() => {
-  const t1_0 = performance.now();
-  console.log(`Connecting database took ${(t1_0 - t0_0) / 1000}  seconds.`);
-})
+// Middleware to ensure DB is connected
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 5000; // 5 seconds
 
-app.get('/', async (ctx) => {
+const ensureDBConnected = async (c: any, next: () => Promise<void>) => {
+  let retries = 0;
+  while (mongoose.connection.readyState !== 1 && retries < MAX_RETRIES) {
+    try {
+      await connectDB();
+      break;
+    } catch (err) {
+      retries++;
+      console.error(`Failed to connect to DB in middleware (attempt ${retries}/${MAX_RETRIES}):`, err);
+      if (retries < MAX_RETRIES) {
+        console.log(`I'm not dead yet! Retrying in ${RETRY_DELAY / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      } else {
+        console.log("I think I'm dead now. X_X");
+        return c.text("Database connection failed. The server is taking a nap.", 503);
+      }
+    }
+  }
+  await next();
+};
+
+// Use the middleware in your Hono app
+app.use('*', ensureDBConnected);
+
+// Initialize DB connection when the app starts
+connectDB().catch(err => {
+  console.error('Initial DB connection failed:', err);
+  // Optionally exit the process or implement a retry mechanism
+});
+
+app.get('/yesnope', async (ctx) => {
   const isSave = ctx.req.query('save')
   console.log("isSave :: ", isSave)
 
@@ -83,14 +130,6 @@ app.get('/', async (ctx) => {
     console.log(`  Deposit Rate: ${(data.deposit * 100).toFixed(2)}%`)
     console.log(`  Borrow Rate: ${(data.borrow * 100).toFixed(2)}%`)
   }
-
-  // Drift
-  // console.log("=============== DRIFT PERP =================")
-  // const driftIRateMetadata = await driftEntryPoint(connection)
-  // for (const [token, data] of Object.entries(driftIRateMetadata)) {
-  //   console.log(`${token}:`)
-  //   console.log(`  Long Funding Rate (annual): ${data.toFixed(2)}%`)
-  // }
 
   const feeMetadata: IFeeComparisonMetaData = {
     marginfi: {
@@ -149,12 +188,7 @@ app.get('/', async (ctx) => {
         HourlyBorrowRate: (await flashIRateMetadata.bonk).borrowRate
       },
     },
-    drift: {
-      // SOLPerp: {
-      //   // driftHourlyFunding: driftIRateMetadata.SOLHourlyFundingRate
-      //   driftHourlyFunding: 0
-      // },
-    },
+    drift: {},
     kamino: {
       solToken: {
         depositIRate: kaminoIRateMetadata.SOL.deposit,
@@ -181,8 +215,13 @@ app.get('/', async (ctx) => {
 
   if (isSave) {
     console.log("Saving the data into the database")
-    const feeComparison = await FeeComparison.create(feeMetadata)
-    console.log(feeComparison.toJSON())
+    try {
+      const feeComparison = await FeeComparison.create(feeMetadata)
+      console.log(feeComparison.toJSON())
+    } catch (err) {
+      console.error('Error saving fee comparison:', err);
+      return ctx.json({ error: 'Failed to save fee comparison' }, 500);
+    }
   }
 
   return ctx.json(feeMetadata)
