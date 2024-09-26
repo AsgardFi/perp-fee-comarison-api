@@ -81,7 +81,7 @@ connectDB().catch(err => {
   // Optionally exit the process or implement a retry mechanism
 });
 
-app.get('/yesnope', async (ctx) => {
+app.get('/', async (ctx) => {
   const isSave = ctx.req.query('save')
   console.log("isSave :: ", isSave)
 
